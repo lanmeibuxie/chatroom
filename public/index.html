@@ -1,0 +1,179 @@
+<!-- public/index.html -->
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>简易聊天室</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        /* 设置全局样式 */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 1.5rem;
+            margin: 10px 0;
+        }
+
+        /* 消息容器样式 */
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+        }
+
+        .message {
+            margin: 5px 0;
+            padding: 5px 10px;
+            border-radius: 5px;
+            background-color: #e6e6e6;
+        }
+
+        .system-message {
+            color: #888;
+            font-style: italic;
+        }
+
+        /* 输入框和按钮容器 */
+        .input-container {
+            display: flex;
+            padding: 10px;
+            border-top: 1px solid #ddd;
+            background-color: #fff;
+        }
+
+        .input-container input {
+            flex: 1;
+            padding: 10px;
+            font-size: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+
+        .input-container button {
+            padding: 10px 20px;
+            font-size: 1rem;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .input-container button:hover {
+            background-color: #0056b3;
+        }
+
+        /* 响应式布局 */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.2rem;
+            }
+
+            .input-container input {
+                font-size: 0.9rem;
+            }
+
+            .input-container button {
+                font-size: 0.9rem;
+                padding: 8px 15px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1rem;
+            }
+
+            .input-container {
+                flex-direction: column;
+            }
+
+            .input-container input {
+                margin-right: 0;
+                margin-bottom: 10px;
+            }
+
+            .input-container button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <h1>在线聊天室 (<span id="userCount">0</span>人在线)</h1>
+    <div id="messages" class="messages-container"></div>
+    <div class="input-container">
+        <input type="text" id="input" placeholder="输入消息...">
+        <button onclick="sendMessage()">发送</button>
+    </div>
+
+    <script>
+        const ws = new WebSocket('ws://localhost:5500');
+        const input = document.getElementById('input');
+
+        // 当WebSocket接收到消息时触发
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+
+            // 获取消息容器DOM元素
+            const messages = document.getElementById('messages');
+            // 获取在线人数DOM元素
+            const userCountElement = document.getElementById('userCount');
+
+            // 判断消息类型
+            switch (data.type) {
+                case 'userCount':
+                    // 在线人数更新消息
+                    userCountElement.textContent = data.count; // 更新在线人数
+                    break;
+                case 'system':
+                    // 创建新的消息div元素
+                    const systemDiv = document.createElement('div');
+                    systemDiv.className = 'message system-message'; // 添加系统消息样式
+                    systemDiv.textContent = `[系统] ${data.content}`; // 显示系统消息内容
+                    messages.appendChild(systemDiv); // 将消息添加到消息容器
+                    break;
+                case 'message':
+                    // 创建新的消息div元素
+                    const userDiv = document.createElement('div');
+                    userDiv.className = 'message'; // 基础样式类
+                    userDiv.textContent = `[${data.user}] ${data.content}`; // 显示用户和消息内容
+                    messages.appendChild(userDiv); // 将消息添加到消息容器
+                    break;
+            }
+
+            // 自动滚动到底部（最新消息位置）
+            messages.scrollTop = messages.scrollHeight;
+        };
+        // 发送消息
+        function sendMessage() {
+            if (input.value.trim()) {
+                ws.send(JSON.stringify({
+                    type: "message",
+                    content: input.value
+                }));
+                input.value = '';
+            }
+        }
+
+        // 回车发送
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+    </script>
+</body>
+
+</html>
