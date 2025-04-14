@@ -117,87 +117,12 @@
     <div id="messages" class="messages-container"></div>
     <div class="input-container">
         <input type="text" id="input" placeholder="输入消息..." autocomplete="off">
-        <button onclick="sendMessage()">发送</button>
+        <button onclick="sendMessage()" id="sendButton">发送</button>
     </div>
 
-    <script>
-        // 获取或生成用户ID
-        let userId = localStorage.getItem('userId');
-        if (!userId) {
-            userId = `用户_${Math.floor(Math.random() * 1000)}`; // 生成随机用户ID
-            localStorage.setItem('userId', userId); // 保存到LocalStorage
-        }
+    <!-- type=moduel 启用 ES6 模块化开发 -->
+    <script type="module" src="js/main.js"></script>
 
-        // 显示用户ID（可选，用于测试）
-        console.log(`当前用户ID: ${userId}`);
-
-        // WebSocket连接
-        const ws = new WebSocket('ws://localhost:5500');
-        const input = document.getElementById('input');
-
-        // 当WebSocket连接成功时，发送用户ID到服务器
-        ws.onopen = () => {
-            ws.send(JSON.stringify({
-                type: "register",
-                userId: userId
-            }));
-        };
-
-        // 当WebSocket接收到消息时触发
-        ws.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-
-            // 获取消息容器DOM元素
-            const messages = document.getElementById('messages');
-            // 获取在线人数DOM元素
-            const userCountElement = document.getElementById('userCount');
-
-            // 判断消息类型
-            switch (data.type) {
-                case 'userCount':
-                    userCountElement.textContent = data.count; // 更新在线人数
-                    break;
-                case 'system':
-                    const systemDiv = document.createElement('div');
-                    systemDiv.className = 'message system-message';
-                    systemDiv.textContent = `[系统] ${data.content}`;
-                    messages.appendChild(systemDiv);
-                    break;
-                case 'message':
-                    const userDiv = document.createElement('div');
-                    userDiv.className = 'message';
-
-                    const time = new Date(data.timestamp).toLocaleTimeString('zh-CN', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit'
-                    });
-
-                    userDiv.textContent = `[${data.user}] (${time}) ${data.content}`;
-                    messages.appendChild(userDiv);
-                    break;
-            }
-
-            messages.scrollTop = messages.scrollHeight;
-        };
-
-        // 发送消息
-        function sendMessage() {
-            if (input.value.trim()) {
-                ws.send(JSON.stringify({
-                    type: "message",
-                    userId: userId, // 发送用户ID
-                    content: input.value
-                }));
-                input.value = '';
-            }
-        }
-
-        // 回车发送
-        input.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendMessage();
-        });
-    </script>
 </body>
 
 </html>

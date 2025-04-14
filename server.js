@@ -34,6 +34,7 @@ wss.on('connection', (ws) => {
 
     // 监听消息
     ws.on('message', (message) => {
+        //将接收到的消息解析为JavaScript对象
         const data = JSON.parse(message);
 
         if (data.type === "register") {
