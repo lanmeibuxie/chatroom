@@ -1,10 +1,18 @@
 // 引入所需模块
 const express = require('express'); // Express框架，用于创建HTTP服务器
 const WebSocket = require('ws'); // WebSocket库，用于创建WebSocket服务器
+const mongoose = require('mongoose');
 
 // 创建Express应用实例
 const app = express();
 const port = 5500; // 定义HTTP服务器的端口号
+
+
+// 连接本地 MongoDB
+mongoose.connect('mongodb://localhost:27017/chatroom')
+    .then(() => console.log('MongoDB 连接成功'))
+    .catch(err => console.error('连接失败:', err));
+
 
 // 静态文件服务
 app.use(express.static('public')); // 将'public'文件夹中的文件作为静态资源提供
@@ -60,12 +68,15 @@ function broadcastSystemMessage(content) {
 
 function handleClientMessage(ws, data) {
     if (data.type === "message") {
+        const timestamp = new Date().toISOString(); // 获取当前时间的 ISO 格式
+
         wss.clients.forEach(client => {
             if (client.readyState === WebSocket.OPEN) {
                 client.send(JSON.stringify({
                     type: "message",
                     user: users.get(ws),
-                    content: data.content
+                    content: data.content,
+                    timestamp: timestamp // 添加时间戳
                 }));
             }
         });

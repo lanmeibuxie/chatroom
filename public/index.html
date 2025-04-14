@@ -116,7 +116,7 @@
     <h1>在线聊天室 (<span id="userCount">0</span>人在线)</h1>
     <div id="messages" class="messages-container"></div>
     <div class="input-container">
-        <input type="text" id="input" placeholder="输入消息...">
+        <input type="text" id="input" placeholder="输入消息..." autocomplete="off">
         <button onclick="sendMessage()">发送</button>
     </div>
 
@@ -150,7 +150,16 @@
                     // 创建新的消息div元素
                     const userDiv = document.createElement('div');
                     userDiv.className = 'message'; // 基础样式类
-                    userDiv.textContent = `[${data.user}] ${data.content}`; // 显示用户和消息内容
+
+                    // 格式化时间戳
+                    const time = new Date(data.timestamp).toLocaleTimeString('zh-CN', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit'
+                    });
+
+                    // 显示用户、时间和消息内容
+                    userDiv.textContent = `[${data.user}] (${time}) ${data.content}`;
                     messages.appendChild(userDiv); // 将消息添加到消息容器
                     break;
             }
