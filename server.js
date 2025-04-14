@@ -30,28 +30,43 @@ const users = new Map(); // 使用Map对象存储在线用户，键为WebSocket�
 
 // 监听WebSocket连接事件
 wss.on('connection', (ws) => {
-    // 为新连接的用户分配随机用户名
-    const username = `用户_${Math.floor(Math.random() * 1000)}`; // 生成随机用户名
-    users.set(ws, username); // 将WebSocket连接和用户名存储到Map中
+    let userId = null;
 
-    // 广播用户加入消息
-    broadcastSystemMessage(`${username} 加入了聊天室`);
-
-    // 广播在线人数
-    broadcastUserCount();
-
-    // 消息处理
+    // 监听消息
     ws.on('message', (message) => {
         const data = JSON.parse(message);
-        handleClientMessage(ws, data);
+
+        if (data.type === "register") {
+            // 用户注册，保存用户ID
+            userId = data.userId;
+            users.set(ws, userId);
+
+            // 广播用户加入消息
+            broadcastSystemMessage(`${userId} 加入了聊天室`);
+            broadcastUserCount();
+        } else if (data.type === "message") {
+            // 处理用户消息
+            const timestamp = new Date().toISOString();
+            wss.clients.forEach(client => {
+                if (client.readyState === WebSocket.OPEN) {
+                    client.send(JSON.stringify({
+                        type: "message",
+                        user: userId,
+                        content: data.content,
+                        timestamp: timestamp
+                    }));
+                }
+            });
+        }
     });
 
     // 连接关闭处理
     ws.on('close', () => {
         users.delete(ws);
-        broadcastSystemMessage(`${username} 离开了聊天室`);
-        // 广播在线人数
-        broadcastUserCount();
+        if (userId) {
+            broadcastSystemMessage(`${userId} 离开了聊天室`);
+            broadcastUserCount();
+        }
     });
 });
 
