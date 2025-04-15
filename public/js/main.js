@@ -3,8 +3,10 @@ import { ChatSocket } from './modules/socket.js';
 import { ChatUI } from './modules/ui.js';
 
 // 初始化
+// 用户id由客户端生成并存储在localStorage中
 const userId = getOrCreateUserId();
 const chatUI = new ChatUI();
+
 //ChatSocket初始化会自动绑定连接和接受消息的事件
 //由于绑定的事件需要对chatui获取的DOM元素进行操作，所以需要在实例化ChatSocket时候传入chatui实例
 const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'; // 根据页面协议选择 ws 或 wss
