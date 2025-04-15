@@ -22,7 +22,7 @@ function getServerIp() {
 async function startServer() {
     // 1. 连接数据库
     //确保连接到数据库进行后续操作
-    // await connectDB()
+    await connectDB()
 
     // 2. 创建Express应用
     const app = createApp()
