@@ -18,7 +18,8 @@ mongoose.connect('mongodb://localhost:27017/chatroom')
 app.use(express.static('public')); // 将'public'文件夹中的文件作为静态资源提供
 
 // 创建HTTP服务器并监听指定端口
-const server = app.listen(port, () => {
+// 服务器会接受来自局域网或公网的请求
+const server = app.listen(port, "0.0.0.0", () => {
     console.log(`HTTP服务运行在 http://localhost:${port}`); // 启动成功后输出提示信息
 });
 

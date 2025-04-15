@@ -7,7 +7,11 @@ const userId = getOrCreateUserId();
 const chatUI = new ChatUI();
 //ChatSocket初始化会自动绑定连接和接受消息的事件
 //由于绑定的事件需要对chatui获取的DOM元素进行操作，所以需要在实例化ChatSocket时候传入chatui实例
-const chatSocket = new ChatSocket('ws://localhost:5500', userId, chatUI);
+const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'; // 根据页面协议选择 ws 或 wss
+const host = window.location.host; // 获取当前主机名和端口
+const wsUrl = `${protocol}//${host}`;
+
+const chatSocket = new ChatSocket(wsUrl, userId, chatUI);
 
 // 绑定发送事件
 document.getElementById('sendButton').addEventListener('click', () => {
