@@ -33,6 +33,7 @@ chatUI.input.addEventListener('keypress', (e) => {
 });
 
 window.sendMessage = () => {
+    console.log(userId);
     if (chatUI.input.value.trim()) {
         chatSocket.send({
             type: 'message',

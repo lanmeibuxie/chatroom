@@ -2,6 +2,9 @@ const WebSocket = require('ws')
 const Message = require('../models/message'); // 引入消息模型
 const User = require('../models/user'); // 引入用户模型
 const ConnectionManager = require('./connectionmanager'); // 引入连接管理器
+const user = require('../models/user');
+const message = require('../models/message');
+
 
 class WebSocketManager {
     constructor(server) {
@@ -12,7 +15,9 @@ class WebSocketManager {
 
     setupHandlers() {
         this.wss.on('connection', (ws) => {
-            let userId = null
+
+            //同步最近的消息到新连接
+            this.syncRecentMessages(ws); // 新增调用
 
             ws.on('message', (message) => {
                 //将接收到的消息解析为JavaScript对象
@@ -37,7 +42,7 @@ class WebSocketManager {
                 //添加时间戳后的消息对象
                 const msg = {
                     type: "message",
-                    user: data.userId,
+                    userId: data.userId,
                     content: data.content,
                     timestamp: new Date().toISOString()
                 }
@@ -165,6 +170,38 @@ class WebSocketManager {
         }
     }
 
+    // 同步最近的消息到新连接
+    async syncRecentMessages(ws) {
+        try {
+            // 从数据库获取最近的20条消息（按时间倒序）
+            const messages = await Message.find()
+                .sort({ timestamp: -1 })
+                .limit(20)
+                .exec();
+
+            // 反转数组保证时间正序（旧消息在前）
+            messages.reverse().forEach(msg => {
+                if (ws.readyState === WebSocket.OPEN) {
+                    // 发送格式与实时消息一致
+                    ws.send(JSON.stringify({
+                        type: msg.type,
+                        userId: msg.userId,
+                        content: msg.content,
+                        timestamp: msg.timestamp
+                    }));
+                }
+            });
+        } catch (error) {
+            console.error('同步历史消息失败:', error);
+            // 可选：发送错误通知
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: "error",
+                    content: "历史消息加载失败"
+                }));
+            }
+        }
+    }
 
 }
 

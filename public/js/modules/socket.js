@@ -26,15 +26,19 @@ export class ChatSocket {
         // 将 JSON 字符串解析为 JavaScript 对象。
         const data = JSON.parse(event.data);
         switch (data.type) {
-            case 'userCount':
-                this.chatUI.updateUserCount(data.count);
+            case 'message':
+                this.chatUI.appendUserMessage(data.userId, data.content, data.timestamp);
                 break;
             case 'system':
                 this.chatUI.appendSystemMessage(data.content);
                 break;
-            case 'message':
-                this.chatUI.appendUserMessage(data.user, data.content, data.timestamp);
+            case 'userCount':
+                this.chatUI.updateUserCount(data.count);
                 break;
+            case 'reconnect':
+                this.chatUI.appendSystemMessage(data.content);
+
+
         }
         // 处理消息时，自动滚动到聊天窗口底部
         this.chatUI.messages.scrollTop = this.chatUI.messages.scrollHeight;
