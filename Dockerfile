@@ -22,4 +22,4 @@ EXPOSE 5500
 
 
 # 启动应用程序
-CMD ["node", "server.js"]
+CMD ["pnpm", "start"]
