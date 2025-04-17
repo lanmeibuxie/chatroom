@@ -8,6 +8,7 @@ export class ChatSocket {
         this.bindEvents();
         this.chatUI = chatUI;
         this.isNewUser = isNewUser; // 新用户标记
+        this.topMsgId = -1; // 用于存储顶部消息的 ID,初始值为-1
     }
 
     // 绑定事件监听(在类中定义方法不需要使用function关键字)
@@ -16,6 +17,8 @@ export class ChatSocket {
         this.ws.onopen = () => {
             // 连接成功后，发送注册或重连消息
             this.send({ type: this.isNewUser ? 'register' : 'reconnect', userId: this.userId });
+            //请求历史消息
+            this.requestHistory();
         };
 
         this.ws.onmessage = (event) => this.handleMessage(event);
@@ -37,11 +40,19 @@ export class ChatSocket {
                 break;
             case 'reconnect':
                 this.chatUI.appendSystemMessage(data.content);
-
-
+            case 'history':
+                console.log(data.topMsgId, data.messages);
+                this.topMsgId = data.topMsgId; // 更新顶部消息 ID
+                this.chatUI.prependMessages(data.messages); // 插入历史消息到顶部
+                this.chatUI.isLoadingHistory = false; // 允许加载更多
+                break;
+            default:
+                return;
         }
-        // 处理消息时，自动滚动到聊天窗口底部
-        this.chatUI.messages.scrollTop = this.chatUI.messages.scrollHeight;
+        // 仅在非历史消息时滚动到底部
+        if (data.type !== 'history') {
+            this.chatUI.messages.scrollTop = this.chatUI.messages.scrollHeight;
+        }
     }
 
     // 向服务器发送消息
@@ -50,5 +61,13 @@ export class ChatSocket {
         this.ws.send(JSON.stringify(message));
     }
 
+    // 请求更多历史消息
+    requestHistory() {
+        // 发送请求历史消息的消息到服务器
+        this.send({
+            type: 'history',
+            topMsgId: this.topMsgId //-1代表第一次请求
+        });
+    }
 
 }

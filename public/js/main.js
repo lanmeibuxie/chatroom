@@ -15,6 +15,9 @@ const wsUrl = `${protocol}//${host}`;
 
 const chatSocket = new ChatSocket(wsUrl, userId, chatUI, isNewUser);
 
+
+chatUI.bindScrollEvent(chatSocket);
+
 // 绑定发送事件
 document.getElementById('sendButton').addEventListener('click', () => {
     if (chatUI.input.value.trim()) {
@@ -42,4 +45,6 @@ window.sendMessage = () => {
         });
         chatUI.input.value = '';
     }
+
+
 };

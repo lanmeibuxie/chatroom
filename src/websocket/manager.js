@@ -5,7 +5,6 @@ const ConnectionManager = require('./connectionmanager'); // 引入连接管理�
 const user = require('../models/user');
 const message = require('../models/message');
 
-
 class WebSocketManager {
     constructor(server) {
         this.wss = new WebSocket.Server({ server })
@@ -16,13 +15,9 @@ class WebSocketManager {
     setupHandlers() {
         this.wss.on('connection', (ws) => {
 
-            //同步最近的消息到新连接
-            this.syncRecentMessages(ws); // 新增调用
-
             ws.on('message', (message) => {
                 //将接收到的消息解析为JavaScript对象
                 const data = JSON.parse(message)
-
                 // 处理消息
                 this.handleMessage(ws, data)
             })
@@ -52,7 +47,42 @@ class WebSocketManager {
                 //保存消息到数据库
                 await this.saveMessageToDatabase(messageMsg);
                 break;
-
+            case "history":
+                console.log('请求历史消息:', data.topMsgId);
+                const limit = 50; // 每次请求的消息数量
+                //如果是第一次
+                if (data.topMsgId === -1) {
+                    console.log('第一次加载历史消息');
+                    //从数据库中获取数据,按id降序排列(最新的id越大)
+                    const messages = await Message.find({}).sort({ _id: -1 }).limit(limit).exec()
+                    if (messages.length === 0) {
+                        console.log('没有历史消息可供加载');
+                        return;
+                    }
+                    const topMsgId = messages[messages.length - 1]._id; // 获取最旧消息的 ID
+                    // 发送消息给客户端
+                    ws.send(JSON.stringify({
+                        type: "history",
+                        messages: messages.reverse(), // 反转消息顺序
+                        topMsgId: topMsgId // 发送最旧消息的 ID
+                    }));
+                } else {
+                    // 1. 查询条件：_id < targetId（不包含目标ID）
+                    const query = { _id: { $lt: data.topMsgId } };
+                    // 2. 按 _id 倒序查询（从新到旧）
+                    const messages = await Message.find(query).sort({ _id: -1 }).limit(limit).exec();
+                    if (messages.length === 0) {
+                        return;
+                    }
+                    const topMsgId = messages[messages.length - 1]._id; // 获取最旧消息的 ID
+                    // 发送消息给客户端
+                    ws.send(JSON.stringify({
+                        type: "history",
+                        messages: messages.reverse(), // 反转消息顺序
+                        topMsgId: topMsgId // 发送最旧消息的 ID
+                    }));
+                }
+                break;
             case "reconnect":
                 // 处理用户重新连接
                 const reconnectMsg = this.handleConnection(ws, data)
@@ -102,7 +132,9 @@ class WebSocketManager {
         return new Message({
             type: data.type,
             userId: data.userId,
-            content: registerMsgContent
+            content: registerMsgContent,
+            //在客户端不会显示,但是需要用以定位
+            timestamp: new Date().toISOString()
         });
     }
 
@@ -111,7 +143,8 @@ class WebSocketManager {
         const msg = {
             type: "system",
             userId: userId,
-            content: `${userId} 离开了聊天室`
+            content: `${userId} 离开了聊天室`,
+            timestamp: new Date().toISOString()
         };
 
         // 从 ConnectionManager 中删除连接
@@ -167,39 +200,6 @@ class WebSocketManager {
             await message.save()
         } catch (error) {
             console.error('保存消息到数据库失败:', error)
-        }
-    }
-
-    // 同步最近的消息到新连接
-    async syncRecentMessages(ws) {
-        try {
-            // 从数据库获取最近的20条消息（按时间倒序）
-            const messages = await Message.find()
-                .sort({ timestamp: -1 })
-                .limit(20)
-                .exec();
-
-            // 反转数组保证时间正序（旧消息在前）
-            messages.reverse().forEach(msg => {
-                if (ws.readyState === WebSocket.OPEN) {
-                    // 发送格式与实时消息一致
-                    ws.send(JSON.stringify({
-                        type: msg.type,
-                        userId: msg.userId,
-                        content: msg.content,
-                        timestamp: msg.timestamp
-                    }));
-                }
-            });
-        } catch (error) {
-            console.error('同步历史消息失败:', error);
-            // 可选：发送错误通知
-            if (ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({
-                    type: "error",
-                    content: "历史消息加载失败"
-                }));
-            }
         }
     }
 

@@ -152,8 +152,31 @@ db.集合名称.func()
 #### mongoose的引入
 
 - **Mongoose 是单例库**：无论你在多少个文件中 `require('mongoose')`，Node.js 模块系统会确保它们指向同一个实例。
+
 - **数据库连接只需建立一次**：在主文件中调用 `mongoose.connect()` 后，整个应用共享该连接。
+
 - **模型注册依赖 Mongoose 实例**：定义模型的模块（如 `models/message.js`）必须引入 Mongoose，否则无法使用 `mongoose.Schema` 和 `mongoose.model()`。
+
+  
+
+#### find方法
+
+#### **基础语法**
+
+javascript
+
+复制
+
+```javascript
+db.collection.find(query, projection).sort(sort).limit(limit)
+```
+
+|     参数     | 类型 |                       说明                        |
+| :----------: | :--: | :-----------------------------------------------: |
+|   `query`    | 对象 |      筛选条件，支持操作符（如 `$lt`, `$gt`）      |
+| `projection` | 对象 | 指定返回字段（可选，如 `{ _id: 1, content: 1 }`） |
+|    `sort`    | 对象 |       排序规则（如 `{ _id: -1 }` 表示倒序）       |
+|   `limit`    | 数字 |                返回文档数量的上限                 |
 
 # 依赖相关
 
@@ -327,7 +350,7 @@ app.use(express.json());
 - `express` 提供了基础的 HTTP 服务，WebSocket 则用于实时通信。
 - 这种集成方式允许您同时处理 HTTP 请求和 WebSocket 连接。
 
-# app.listen方法
+## app.listen方法
 
 ### **代码解析**
 
