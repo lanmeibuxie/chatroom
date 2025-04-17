@@ -1,12 +1,12 @@
 const WebSocket = require('ws')
 const Message = require('../models/message'); // 引入消息模型
 const User = require('../models/user'); // 引入用户模型
+const ConnectionManager = require('./connectionmanager'); // 引入连接管理器
 
 class WebSocketManager {
     constructor(server) {
         this.wss = new WebSocket.Server({ server })
-        //使用Map对象存储在线用户，键为WebSocket连接，值为用户名
-        this.users = new Map()
+        this.ctmanager = new ConnectionManager();
         this.setupHandlers()
     }
 
@@ -84,37 +84,41 @@ class WebSocketManager {
 
     // 处理用户注册和重新连接
     handleConnection(ws, data) {
+
         //保存用户ID
-        this.users.set(ws, data.userId)
+        this.ctmanager.addConnection(ws, data.userId);
+        const registerMsgContent = `${data.type == "register" ? "新用户 " : " "}${data.userId} 加入了聊天室`
+
         //广播用户加入消息
-        this.broadcastSystemMessage(this.wss, `${data.type == "register" ? "新用户 " : " "}${data.userId} 加入了聊天室`)
+        this.broadcastSystemMessage(this.wss, registerMsgContent)
+
         //广播在线人数
         this.broadcastUserCount(this.wss)
         return new Message({
             type: data.type,
             userId: data.userId,
-            content: data.content
+            content: registerMsgContent
         });
     }
 
     async handleClose(ws) {
-
-        const userId = this.users.get(ws)
+        const userId = this.ctmanager.connToUser.get(ws); // 使用 ConnectionManager 获取用户 ID
         const msg = {
             type: "system",
             userId: userId,
             content: `${userId} 离开了聊天室`
-        }
+        };
 
-        //从在线用户中删除
-        this.users.delete(ws)
+        // 从 ConnectionManager 中删除连接
+        this.ctmanager.removeConnection(ws);
 
         const newMessage = new Message(msg);
-        //保存消息到数据库
+        // 保存消息到数据库
         await this.saveMessageToDatabase(newMessage);
+
         if (userId) {
-            this.broadcastSystemMessage(this.wss, `${userId} 离开了聊天室`)
-            this.broadcastUserCount(this.wss)
+            this.broadcastSystemMessage(this.wss, `${userId} 离开了聊天室`);
+            this.broadcastUserCount(this.wss);
         }
     }
 
@@ -132,7 +136,7 @@ class WebSocketManager {
 
     // 广播在线人数给所有连接的客户端
     broadcastUserCount(wss) {
-        const userCount = wss.clients.size
+        const userCount = this.ctmanager.getOnlineUserCount()
         wss.clients.forEach(client => {
             if (client.readyState === WebSocket.OPEN) {
                 client.send(JSON.stringify({

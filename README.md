@@ -45,7 +45,41 @@
 - pnpm：高效的包管理工具
 
 ## 项目结构
-（此处可补充项目目录结构说明）
+chatroom/
+├── .dockerignore            # Docker 构建时忽略的文件和目录
+├── .gitignore               # Git 忽略的文件和目录
+├── Dockerfile               # Docker 配置文件
+├── README.md                # 项目说明文档
+├── package.json             # 项目依赖和脚本配置
+├── pnpm-lock.yaml           # pnpm 锁定文件
+├── public/                  # 前端静态资源
+│   ├── index.html           # 主页面 HTML 文件
+│   ├── js/                  # 前端 JavaScript 文件
+│   │   ├── main.js          # 前端入口文件
+│   │   ├── modules/         # 前端模块
+│   │   │   ├── socket.js    # WebSocket 客户端模块
+│   │   │   ├── ui.js        # UI 管理模块
+│   │   │   └── user.js      # 用户管理模块
+│   │   └── utils/
+│   │       └── timeFormatter.js # 时间格式化工具
+├── src/                     # 后端代码
+│   ├── app.js               # Express 应用配置
+│   ├── config/              # 配置文件
+│   │   └── constants.js     # 常量配置
+│   ├── db/                  # 数据库相关代码
+│   │   └── connection.js    # MongoDB 连接模块
+│   ├── models/              # 数据模型
+│   │   ├── message.js       # 消息模型
+│   │   └── user.js          # 用户模型
+│   ├── websocket/           # WebSocket 相关代码
+│   │   ├── connectionmanager.js # WebSocket 连接管理器
+│   │   └── manager.js       # WebSocket 管理器
+│   └── server.js            # 服务器入口文件
+└── Technical Documentation/ # 技术文档
+    ├── chatroom开发手册.md  # 开发手册
+    ├── js语法.md            # JavaScript 语法说明
+    └── 未处理的需求.md      # 项目未处理需求
+
 ## 快速开始
 1. 克隆项目
 ```bash 
@@ -64,20 +98,21 @@ docker run -d --name mongodb -p 27017:27017 mongo:latest
 ```
 1. 启动项目
  ```bash  
- node server.js
+ pnpm start
+ #或者 node src/server.js
  ```
 2. 访问应用
 在浏览器中访问：
  ```bash
     http://localhost:5500
-```
+ ```
 使用 Docker 部署
 1. 构建 Docker 镜像
  ```bash
    docker build -t chatroom-app .
-```
+ ```
 2. 运行容器
  ```bash  docker run -d -p 5500:5500 --name 
- chatroom-container chatroom-app
+ docker run -d -p 5500:5500 --name chatroom-container chatroom-app
  ```
 
