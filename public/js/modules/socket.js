@@ -46,30 +46,5 @@ export class ChatSocket {
         this.ws.send(JSON.stringify(message));
     }
 
-    // JavaScript 是动态类型语言，编辑器（如 VS Code）无法在运行时推断 chatUI 的具体类型
 
-    //更新在线人数
-    //以下方法已在 ChatUI 中实现
-    // updateUserCount(count) {
-    //     this.chatUI.userCount.textContent = count;
-    // }
-
-    // // 添加系统消息
-    // appendSystemMessage(content) {
-    //     const systemDiv = document.createElement('div');
-    //     systemDiv.className = 'message system-message';
-    //     systemDiv.textContent = `[系统] ${content}`;
-    //     this.chatUI.messages.appendChild(systemDiv);
-    // }
-
-    // // 添加用户消息
-    // appendUserMessage(user, content, timestamp) {
-    //     const userDiv = document.createElement('div');
-    //     userDiv.className = 'message';
-    //     //  ​​JavaScript/TypeScript 模板字符串​​（Template Literal），使用反引号（`）包裹，
-    //     // 通过 ${} 语法嵌入变量或表达式。其功能是 ​​动态生成格式化的
-    //     // 消息字符串​​。
-    //     userDiv.textContent = `[${user}] (${formatTime(timestamp)}) ${content}`;
-    //     this.chatUI.messages.appendChild(userDiv);
-    // }
 }

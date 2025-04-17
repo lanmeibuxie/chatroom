@@ -22,7 +22,7 @@ class WebSocketManager {
                 this.handleMessage(ws, data)
             })
 
-            ws.on('close', () => this.handleClose(ws, userId))
+            ws.on('close', () => this.handleClose(ws))
         })
     }
 
@@ -33,13 +33,17 @@ class WebSocketManager {
 
             //优先处理高频操作
             case "message":
-                const messageMsg = new Message({ // 使用唯一变量名 
+                // 处理用户发送的消息
+                //添加时间戳后的消息对象
+                const msg = {
                     type: "message",
                     user: data.userId,
                     content: data.content,
                     timestamp: new Date().toISOString()
-                });
-                this.sendMessageToAll(messageMsg);
+                }
+                const messageMsg = new Message(msg);
+                //需要注意sendMessageToAll方法应当接受javaScript对象
+                this.sendMessageToAll(msg);
                 //保存消息到数据库
                 await this.saveMessageToDatabase(messageMsg);
                 break;
@@ -83,7 +87,7 @@ class WebSocketManager {
         //保存用户ID
         this.users.set(ws, data.userId)
         //广播用户加入消息
-        this.broadcastSystemMessage(this.wss, `${data.type == "register" ? "新" : ""}用户${data.userId} 加入了聊天室`)
+        this.broadcastSystemMessage(this.wss, `${data.type == "register" ? "新用户 " : " "}${data.userId} 加入了聊天室`)
         //广播在线人数
         this.broadcastUserCount(this.wss)
         return new Message({
@@ -93,14 +97,19 @@ class WebSocketManager {
         });
     }
 
-    async handleClose(ws, userId) {
+    async handleClose(ws) {
 
-        this.users.delete(ws)
-        const newMessage = new Message({
+        const userId = this.users.get(ws)
+        const msg = {
             type: "system",
             userId: userId,
             content: `${userId} 离开了聊天室`
-        });
+        }
+
+        //从在线用户中删除
+        this.users.delete(ws)
+
+        const newMessage = new Message(msg);
         //保存消息到数据库
         await this.saveMessageToDatabase(newMessage);
         if (userId) {
