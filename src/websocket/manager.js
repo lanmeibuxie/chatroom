@@ -1,9 +1,11 @@
 const WebSocket = require('ws')
 const Message = require('../models/message'); // 引入消息模型
+const User = require('../models/user'); // 引入用户模型
 
 class WebSocketManager {
     constructor(server) {
         this.wss = new WebSocket.Server({ server })
+        //使用Map对象存储在线用户，键为WebSocket连接，值为用户名
         this.users = new Map()
         this.setupHandlers()
     }
@@ -27,62 +29,68 @@ class WebSocketManager {
 
     async handleMessage(ws, data) {
 
-        //处理用户注册
-        if (data.type === "register") {
-            // 创建一个新的消息文档
-            // Mongoose Document类型并非javascript对象
-            const newMessage = new Message({
-                type: "register",       // 消息类型
-                userId: data.userId,   // 用户 ID
-                content: data.content  // 消息内容
-            });
+        switch (data.type) {
 
-            try {
+            //优先处理高频操作
+            case "message":
+                const messageMsg = new Message({ // 使用唯一变量名 
+                    type: "message",
+                    user: data.userId,
+                    content: data.content,
+                    timestamp: new Date().toISOString()
+                });
+                this.sendMessageToAll(messageMsg);
                 //保存消息到数据库
-                await newMessage.save();
-            }
-            catch (error) {
-                console.error('保存消息到数据库失败:', error);
-            }
+                await this.saveMessageToDatabase(messageMsg);
+                break;
 
-            this.handleRegistration(ws, data.userId)
-        }
-        else if (data.type === "message") {
-            // 处理用户消息
-            const timestamp = new Date().toISOString();
-            //带时间戳的消息
-            const messaget = {
-                type: "message",
-                user: data.userId,
-                content: data.content,
-                timestamp: timestamp
-            }
-            const newMessage = new Message(messaget);
-
-            try {
+            case "reconnect":
+                // 处理用户重新连接
+                const reconnectMsg = this.handleConnection(ws, data)
                 //保存消息到数据库
-                await newMessage.save();
-            }
-            catch (error) {
-                console.error('保存消息到数据库失败:', error);
-            }
+                await this.saveMessageToDatabase(reconnectMsg);
+                break;
 
-            this.wss.clients.forEach(client => {
-                if (client.readyState === WebSocket.OPEN) {
-                    client.send(JSON.stringify(messaget));
+            case "register":
+                const registerMsg = this.handleConnection(ws, data)
+                //保存消息到数据库
+                await this.saveMessageToDatabase(registerMsg);
+                const newUser = new User({
+                    userId: data.userId
+                });
+                try {
+                    //保存用户到数据库
+                    await newUser.save();
                 }
-            });
+                catch (error) {
+                    console.error('保存用户到数据库失败:', error);
+                    // 处理错误，发错误消息给客户端,让客户端重新注册
+                    //
+                    //
+                }
+                break;
+            default:
+                console.error('未知消息类型:', data.type);
+                //发送错误消息给客户端
+                return;
+
         }
-        // 可扩展其他消息类型处理
+
     }
 
-    handleRegistration(ws, userId) {
+    // 处理用户注册和重新连接
+    handleConnection(ws, data) {
         //保存用户ID
-        this.users.set(ws, userId)
+        this.users.set(ws, data.userId)
         //广播用户加入消息
-        this.broadcastSystemMessage(this.wss, `${userId} 加入了聊天室`)
+        this.broadcastSystemMessage(this.wss, `${data.type == "register" ? "新" : ""}用户${data.userId} 加入了聊天室`)
         //广播在线人数
         this.broadcastUserCount(this.wss)
+        return new Message({
+            type: data.type,
+            userId: data.userId,
+            content: data.content
+        });
     }
 
     async handleClose(ws, userId) {
@@ -93,14 +101,8 @@ class WebSocketManager {
             userId: userId,
             content: `${userId} 离开了聊天室`
         });
-        try {
-            //保存消息到数据库
-            await newMessage.save();
-        }
-        catch (error) {
-            console.error('保存消息到数据库失败:', error);
-        }
-
+        //保存消息到数据库
+        await this.saveMessageToDatabase(newMessage);
         if (userId) {
             this.broadcastSystemMessage(this.wss, `${userId} 离开了聊天室`)
             this.broadcastUserCount(this.wss)
@@ -132,22 +134,25 @@ class WebSocketManager {
         })
     }
 
-    handleClientMessage(ws, data) {
-        if (data.type === "message") {
-            const timestamp = new Date().toISOString(); // 获取当前时间的 ISO 格式
+    // 发送消息给所有连接的客户端
+    sendMessageToAll(message) {
+        this.wss.clients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify(message))
+            }
+        })
+    }
 
-            this.wss.clients.forEach(client => {
-                if (client.readyState === WebSocket.OPEN) {
-                    client.send(JSON.stringify({
-                        type: "message",
-                        user: users.get(ws),
-                        content: data.content,
-                        timestamp: timestamp // 添加时间戳
-                    }));
-                }
-            });
+    //消息保存到数据库
+    async saveMessageToDatabase(message) {
+        try {
+            await message.save()
+        } catch (error) {
+            console.error('保存消息到数据库失败:', error)
         }
     }
+
+
 }
 
 module.exports = WebSocketManager

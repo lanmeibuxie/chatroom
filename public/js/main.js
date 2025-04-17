@@ -4,7 +4,7 @@ import { ChatUI } from './modules/ui.js';
 
 // 初始化
 // 用户id由客户端生成并存储在localStorage中
-const userId = getOrCreateUserId();
+const { userId, isNewUser } = getOrCreateUserId();
 const chatUI = new ChatUI();
 
 //ChatSocket初始化会自动绑定连接和接受消息的事件
@@ -13,7 +13,7 @@ const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'; // 根�
 const host = window.location.host; // 获取当前主机名和端口
 const wsUrl = `${protocol}//${host}`;
 
-const chatSocket = new ChatSocket(wsUrl, userId, chatUI);
+const chatSocket = new ChatSocket(wsUrl, userId, chatUI, isNewUser);
 
 // 绑定发送事件
 document.getElementById('sendButton').addEventListener('click', () => {

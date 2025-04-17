@@ -9,9 +9,11 @@
 
 export function getOrCreateUserId() {
     let userId = localStorage.getItem('userId');
+    let isNewUser = false; // 新用户标记
     if (!userId) {
         userId = `用户_${Math.floor(Math.random() * 1000)}`;
         localStorage.setItem('userId', userId);
+        isNewUser = true; // 标记为新用户
     }
-    return userId;
+    return { userId, isNewUser };
 }

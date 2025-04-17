@@ -2,18 +2,20 @@ import { formatTime } from '../utils/timeFormatter.js';
 // 不需要 import ChatUI，因为它是通过参数传递的。
 
 export class ChatSocket {
-    constructor(url, userId, chatUI) {
+    constructor(url, userId, chatUI, isNewUser) {
         this.ws = new WebSocket(url);
         this.userId = userId;
         this.bindEvents();
         this.chatUI = chatUI;
+        this.isNewUser = isNewUser; // 新用户标记
     }
 
     // 绑定事件监听(在类中定义方法不需要使用function关键字)
     bindEvents() {
         // 当WebSocket连接成功时，发送用户ID到服务器
         this.ws.onopen = () => {
-            this.send({ type: 'register', userId: this.userId });
+            // 连接成功后，发送注册或重连消息
+            this.send({ type: this.isNewUser ? 'register' : 'reconnect', userId: this.userId });
         };
 
         this.ws.onmessage = (event) => this.handleMessage(event);
